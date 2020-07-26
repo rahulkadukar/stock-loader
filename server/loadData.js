@@ -1,3 +1,4 @@
+const chalk = require('chalk')
 const fs = require('fs')
 const readline = require('readline')
 const { sqlQuery } = require('./postgres')
@@ -43,15 +44,19 @@ async function insertIntoDb(files) {
     })
 
     const fileContents = fs.readFileSync(f, 'utf-8')
-    let x = 0
-    for await (const r of readFileInterface) {
-      if (x++ === 0) continue
-      data.push(splitRowIntoFields(r))
-    }
+    data.push(...fileContents.split(/\r?\n/).slice(1).filter((r) => {
+      if (r.length === 0) return false
+      else return true }).map((r) => {
+        return splitRowIntoFields(r)
+      })
+    )
 
     if (data.length > 50000) {
       const beginTime = process.hrtime()
-      cl(`About to INSERT ${data.length} records`)
+      const dataLen = data.length
+
+      const r0 = Object.assign({}, data[0])
+      const rn = Object.assign({}, data[dataLen - 1])
 
       let insertQuery = `INSERT INTO "stockData".stockinfo` +
        `("ticker", "date", "open", "high", "low", "close", "volume") VALUES`
@@ -63,14 +68,30 @@ async function insertIntoDb(files) {
       }
 
       await sqlQuery(insertQuery.slice(0,-1))
-
       data.length = 0
 
       const formatProcessTime = (t) => Math.ceil((t[0] * 1e9 + t[1]) / 1e6)
+
       const finishTime = formatProcessTime(process.hrtime(beginTime))
-      cl(`Finished INSERT after ${finishTime} ms`)
+
+      const printStr = `INSERTS: ${chalk.green(dataLen)} TOOK ${chalk.green(finishTime)} ms` +
+        ` FROM ${chalk.yellow(r0.date.slice(0,10))} [${chalk.red(r0.ticker)}]` +
+        ` TO ${chalk.yellow(rn.date.slice(0,10))} [${chalk.red(rn.ticker)}]`
+      
+      cl(printStr)
     }
   }
+
+  let insertQuery = `INSERT INTO "stockData".stockinfo` +
+  `("ticker", "date", "open", "high", "low", "close", "volume") VALUES`
+  
+  for (let j = 0; j < data.length; ++j) {
+    const r = data[j]
+    insertQuery += `('${r.ticker}', '${r.date}', '${r.open}', '${r.high}',` +
+      ` '${r.low}', '${r.close}', '${r.vol}'),`
+  }
+
+  await sqlQuery(insertQuery.slice(0,-1))
 }
 
 async function readFiles(folderPath) {
