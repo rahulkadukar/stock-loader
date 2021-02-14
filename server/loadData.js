@@ -34,6 +34,7 @@ function splitRowIntoFields(row) {
 
 async function insertIntoDb(files) {
   const data = []
+  let lastbeginTime = process.hrtime()
 
   for (let i = 0; i < files.length; ++i) {
     const f = files[i]
@@ -71,14 +72,13 @@ async function insertIntoDb(files) {
       data.length = 0
 
       const formatProcessTime = (t) => Math.ceil((t[0] * 1e9 + t[1]) / 1e6)
-
       const finishTime = formatProcessTime(process.hrtime(beginTime))
-
       const printStr = `INSERTS: ${chalk.green(dataLen)} TOOK ${chalk.green(finishTime)} ms` +
         ` FROM ${chalk.yellow(r0.date.slice(0,10))} [${chalk.red(r0.ticker)}]` +
         ` TO ${chalk.yellow(rn.date.slice(0,10))} [${chalk.red(rn.ticker)}]`
       
       cl(printStr)
+      lastBeginTime = process.hrtime()
     }
   }
 
@@ -91,19 +91,34 @@ async function insertIntoDb(files) {
       ` '${r.low}', '${r.close}', '${r.vol}'),`
   }
 
-  await sqlQuery(insertQuery.slice(0,-1))
+  const dataLen = data.length
+  const r0 = Object.assign({}, data[0])
+  const rn = Object.assign({}, data[dataLen - 1])
+
+  await sqlQuery(`${insertQuery.slice(0,-1)} ON CONFLICT DO NOTHING`)
+  const formatProcessTime = (t) => Math.ceil((t[0] * 1e9 + t[1]) / 1e6)
+  const finishTime = formatProcessTime(process.hrtime(lastBeginTime))
+  const printStr = `INSERTS: ${chalk.green(dataLen)} TOOK ${chalk.green(finishTime)} ms` +
+    ` FROM ${chalk.yellow(r0.date.slice(0,10))} [${chalk.red(r0.ticker)}]` +
+    ` TO ${chalk.yellow(rn.date.slice(0,10))} [${chalk.red(rn.ticker)}]`
+  
+  cl(printStr)
 }
 
 async function readFiles(folderPath) {
   const pathNASDAQ = `${folderPath}/NASDAQ`
   const pathNYSE = `${folderPath}/NYSE`
-
   const files = []
-  files.push(...fs.readdirSync(pathNASDAQ).map(f => `${pathNASDAQ}/${f}`))
-  files.push(...fs.readdirSync(pathNYSE).map(f => `${pathNYSE}/${f}`))
+
+  fs.readdirSync(pathNASDAQ).forEach(f => {
+    fs.readdirSync(`${pathNASDAQ}/${f}`).forEach((file => files.push(`${pathNASDAQ}/${f}/${file}`)))
+  })
+
+  fs.readdirSync(pathNYSE).forEach(f => {
+    fs.readdirSync(`${pathNYSE}/${f}`).forEach((file => files.push(`${pathNYSE}/${f}/${file}`)))
+  })
 
   await sqlQuery(fs.readFileSync(`./sqlFiles/createOHLC.sql`, 'utf-8'))
-
   return files
 }
 

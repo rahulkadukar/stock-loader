@@ -1,5 +1,5 @@
 const { Pool } = require('pg')
-const { dbConnection } = require('../config/postgres.private.js')
+const { dbConnection } = require('../config/postgres.js.private')
 
 const pgsql = new Pool({
   user: dbConnection.user,

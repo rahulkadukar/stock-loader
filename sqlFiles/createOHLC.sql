@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS "stockData".stockinfo;
+-- DROP TABLE IF EXISTS "stockData".stockinfo;
 CREATE TABLE IF NOT EXISTS "stockData".stockinfo
 (
   ticker character(10) COLLATE pg_catalog."default" NOT NULL,

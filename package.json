@@ -1,0 +1,24 @@
+{
+  "name": "stock-loader",
+  "version": "1.0.0",
+  "description": "To Load data in OHLC format",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rahulkadukar/stock-loader.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rahulkadukar/stock-loader/issues"
+  },
+  "homepage": "https://github.com/rahulkadukar/stock-loader#readme",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "pg": "^8.5.1"
+  }
+}
